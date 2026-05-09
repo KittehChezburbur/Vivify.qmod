@@ -1,0 +1,13 @@
+{
+  "name": "vivify-qmod",
+  "version": "1.0.0",
+  "description": "Vivify - Beat Saber visual enhancement mod for ALL maps",
+  "scripts": {
+    "build": "mkdir -p build && cd build && cmake .. && make",
+    "clean": "rm -rf build",
+    "rebuild": "npm run clean && npm run build"
+  },
+  "keywords": ["beat-saber", "qmod", "mod", "visual", "effects", "all-maps"],
+  "author": "KittehChezburbur",
+  "license": "MIT"
+}
