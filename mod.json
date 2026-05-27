@@ -6,7 +6,7 @@
   "description": "Automatically achieve perfect 115 scores on every song for guaranteed 1st place on leaderboards",
   "version": "1.0.0",
   "packageId": "com.beatgames.beatsaber",
-  "versionRange": "1.37.1",
+  "versionRange": "1.40.8",
   "modFiles": [
     "lib/libAutoplayMod.so"
   ],
