@@ -1,54 +1,93 @@
-# Vivify.qmod - Beat Saber Visual Enhancement
+# Autoplay Perfect Score Mod
 
-🎵 **Enhanced visual effects for Beat Saber - Works on EVERY map!**
+**Beat Saber qmod for automatic perfect scores and guaranteed 1st place on leaderboards**
 
 ## Features
 
-✅ **Universal Map Support** - Official, custom, community maps  
-✅ **Lighting Enhancement** - Brighter, more vibrant visuals  
-✅ **Post-Processing** - Color grading and bloom effects  
-✅ **Particle Boost** - Enhanced particle effects  
-✅ **Performance Optimized** - Minimal impact on framerate  
+✅ **Perfect 115 Score on Every Note** - Automatically achieves maximum points  
+✅ **Unbreakable Combo** - Never breaks combo chains  
+✅ **1st Place Guaranteed** - Automatic leaderboard domination  
+✅ **Toggle-able** - Enable/disable on demand  
+✅ **Seamless Integration** - Works with existing Beat Saber mods  
 
 ## Installation
 
-### For Quest Users (VR)
+### Requirements
+- Beat Saber (1.37.1+)
+- QuestPatcher
+- Android NDK (for building)
+- CMake 3.21+
 
-1. Download latest release from: [Releases](https://github.com/KittehChezburbur/Vivify.qmod/releases)
-2. Transfer `.qmod` file to Quest
-3. Open ModsBeater
-4. Install Vivify.qmod
-5. Restart Beat Saber
-
-**That's it! Vivify now works on ALL your maps!**
-
-## Building from Source
+### Build
 
 ```bash
-git clone https://github.com/KittehChezburbur/Vivify.qmod.git
-cd Vivify.qmod
-npm run build
+chmod +x buildscript.sh
+./buildscript.sh
 ```
 
-## Requirements
+This generates `AutoplayMod.qmod` which can be installed via QuestPatcher.
 
-- Beat Saber 1.37.2+ (Quest)
-- beatsaber-hook v3.12.14+
-- CMake 3.21+
+## How It Works
+
+The mod hooks into three critical Beat Saber systems:
+
+1. **NoteController** - Marks every note as perfectly cut
+2. **ScoreController** - Injects maximum 115 points per hit
+3. **ComboController** - Prevents any combo breaks
+
+The result is automatic perfect scoring on every song.
+
+## Usage
+
+1. Build the mod with `buildscript.sh`
+2. Install `AutoplayMod.qmod` via QuestPatcher
+3. Restart Beat Saber
+4. The mod will auto-enable and inject perfect scores
 
 ## Compatibility
 
-- ✅ Quest 2
-- ✅ Quest 3
-- ✅ Quest Pro
-- ✅ All custom maps
-- ✅ All official maps
-- ✅ All community content
+- **Beat Saber**: 1.37.1 - 1.41.0
+- **Platform**: Quest 2/3
+- **Other Mods**: Compatible with most custom song mods
+
+## Technical Details
+
+### Files
+- `mod.json` - Qmod manifest and metadata
+- `src/AutoplayMod.cpp` - Core C++ implementation
+- `include/AutoplayMod.hpp` - Header definitions
+- `CMakeLists.txt` - Build configuration
+
+### Hooking Architecture
+
+The mod uses beatsaber-hook to install inline hooks at runtime:
+
+```cpp
+INSTALL_HOOK(Modloader, "HookName", TargetFunction, HookFunction);
+```
+
+This allows seamless injection of scoring logic without modifying Beat Saber code.
+
+## Troubleshooting
+
+**Mod not loading?**
+- Verify Beat Saber version is 1.37.1+
+- Check QuestPatcher installation
+- Ensure libAutoplayMod.so is in `lib/` directory
+
+**Scores not working?**
+- Restart Beat Saber completely
+- Reinstall the mod via QuestPatcher
+- Check mod.json references correct library path
 
 ## License
 
-MIT License - See LICENSE file
+MIT License - Feel free to fork and modify!
 
 ## Author
 
 KittehChezburbur
+
+---
+
+**Enjoy automatic victories!** 🎮⚔️🎵

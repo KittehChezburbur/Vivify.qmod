@@ -1,26 +1,25 @@
 cmake_minimum_required(VERSION 3.21.0)
-project(vivify)
+project(AutoplayMod)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-include_directories(include)
-include_directories(extern/beatsaber-hook/include)
-include_directories(extern/beatsaber-hook/src)
+# Include directories
+include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 
-set(SOURCES
-    src/main.cpp
-    src/vivify.cpp
+# Add the library
+add_library(AutoplayMod SHARED
+    src/AutoplayMod.cpp
 )
 
-add_library(vivify SHARED ${SOURCES})
-
-target_link_libraries(vivify PUBLIC
+# Link required libraries
+target_link_libraries(AutoplayMod PUBLIC
     beatsaber-hook
+    modloader
 )
 
-set_target_properties(vivify PROPERTIES
-    PREFIX ""
-    SUFFIX ".so"
-    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/libs"
+# Output directory
+set_target_properties(AutoplayMod PROPERTIES
+    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
 )
