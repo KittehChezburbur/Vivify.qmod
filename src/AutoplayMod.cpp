@@ -1,14 +1,12 @@
-#include "../include/main.hpp"
-#include "GlobalNamespace/NoteController.hpp"
-#include "GlobalNamespace/ScoreController.hpp"
-#include "GlobalNamespace/ComboController.hpp"
-#include "GlobalNamespace/NoteCutInfo.hpp"
+#include "beatsaber-hook/shared/utils/logging.hpp"
+#include "beatsaber-hook/shared/utils/il2cpp-utils.hpp"
 
-using namespace vivify;
+// Logger
+static auto logger = new Logger(ModInfo{"AutoplayMod", "1.0.0"});
 
 bool autoplayEnabled = true;
 
-// Hook for note cutting - make all cuts perfect
+// Hook for perfect note cutting
 MAKE_HOOK_MATCH(NoteCutInfo_ctor, &GlobalNamespace::NoteCutInfo::NoteCutInfo, void,
     GlobalNamespace::NoteCutInfo* self, 
     GlobalNamespace::NoteData* noteData,
@@ -18,7 +16,6 @@ MAKE_HOOK_MATCH(NoteCutInfo_ctor, &GlobalNamespace::NoteCutInfo::NoteCutInfo, vo
     float cutSpeed) {
     
     if (autoplayEnabled && noteData) {
-        // Perfect cut: correct direction, good speed, center hit
         cutDirection = noteData->cutDirection;
         cutPoint = UnityEngine::Vector3::zero;
         cutAngle = UnityEngine::Quaternion::identity;
@@ -28,7 +25,7 @@ MAKE_HOOK_MATCH(NoteCutInfo_ctor, &GlobalNamespace::NoteCutInfo::NoteCutInfo, vo
     NoteCutInfo_ctor(self, noteData, cutDirection, cutPoint, cutAngle, cutSpeed);
 }
 
-// Hook for bomb avoidance - disable bomb collisions
+// Hook for bomb avoidance
 MAKE_HOOK_MATCH(BombNoteController_Init, &GlobalNamespace::BombNoteController::Init, void,
     GlobalNamespace::BombNoteController* self,
     GlobalNamespace::NoteData* noteData,
@@ -45,7 +42,7 @@ MAKE_HOOK_MATCH(BombNoteController_Init, &GlobalNamespace::BombNoteController::I
     BombNoteController_Init(self, noteData, worldRotation, moveStartPos, moveEndPos, duration);
 }
 
-// Hook for obstacle avoidance - disable obstacle collisions
+// Hook for obstacle avoidance
 MAKE_HOOK_MATCH(ObstacleController_Init, &GlobalNamespace::ObstacleController::Init, void,
     GlobalNamespace::ObstacleController* self,
     GlobalNamespace::ObstacleData* obstacleData,
@@ -63,16 +60,15 @@ MAKE_HOOK_MATCH(ObstacleController_Init, &GlobalNamespace::ObstacleController::I
 }
 
 extern "C" void setup(ModInfo& info) {
-    info = {"AutoplayMod", "1.0.0", 0};
-    GetLogger().info("Autoplay Mod setup!");
+    info = ModInfo{"AutoplayMod", "1.0.0"};
 }
 
 extern "C" void load() {
-    GetLogger().info("Loading Autoplay Mod...");
+    logger->info("Loading Autoplay Mod...");
     
-    INSTALL_HOOK(GetLogger(), NoteCutInfo_ctor);
-    INSTALL_HOOK(GetLogger(), BombNoteController_Init);
-    INSTALL_HOOK(GetLogger(), ObstacleController_Init);
+    INSTALL_HOOK(*logger, NoteCutInfo_ctor);
+    INSTALL_HOOK(*logger, BombNoteController_Init);
+    INSTALL_HOOK(*logger, ObstacleController_Init);
     
-    GetLogger().info("Autoplay Mod loaded successfully!");
+    logger->info("Autoplay Mod loaded!");
 }
