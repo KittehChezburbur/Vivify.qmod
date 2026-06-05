@@ -1,23 +1,14 @@
-#include "beatsaber-hook/shared/utils/logging.hpp"
-#include "beatsaber-hook/shared/utils/il2cpp-utils.hpp"
-#include "beatsaber-hook/shared/config/config-utils.hpp"
-#include "beatsaber-hook/shared/utils/hooking.hpp"
+#include "../include/main.hpp"
+#include "GlobalNamespace/NoteController.hpp"
+#include "GlobalNamespace/ScoreController.hpp"
+#include "GlobalNamespace/ComboController.hpp"
+#include "GlobalNamespace/NoteCutInfo.hpp"
 
-static ModInfo modInfo = {.id = "AutoplayMod", .version = "1.0.0"};
+using namespace vivify;
 
-// Logger instance
-Logger &getLogger() {
-    static auto logger = new Logger(modInfo);
-    return *logger;
-}
-
-// Hooking namespace
-using namespace BSML::Parsing;
-
-// Global autoplay enabled flag
 bool autoplayEnabled = true;
 
-// Hook for note cutting
+// Hook for note cutting - make all cuts perfect
 MAKE_HOOK_MATCH(NoteCutInfo_ctor, &GlobalNamespace::NoteCutInfo::NoteCutInfo, void,
     GlobalNamespace::NoteCutInfo* self, 
     GlobalNamespace::NoteData* noteData,
@@ -26,35 +17,18 @@ MAKE_HOOK_MATCH(NoteCutInfo_ctor, &GlobalNamespace::NoteCutInfo::NoteCutInfo, vo
     UnityEngine::Quaternion cutAngle,
     float cutSpeed) {
     
-    if (autoplayEnabled) {
+    if (autoplayEnabled && noteData) {
         // Perfect cut: correct direction, good speed, center hit
         cutDirection = noteData->cutDirection;
         cutPoint = UnityEngine::Vector3::zero;
         cutAngle = UnityEngine::Quaternion::identity;
-        cutSpeed = 20.0f; // Perfect swing speed
+        cutSpeed = 20.0f;
     }
     
     NoteCutInfo_ctor(self, noteData, cutDirection, cutPoint, cutAngle, cutSpeed);
 }
 
-// Hook for score submission
-MAKE_HOOK_MATCH(ScoreController_HandleNoteWasCut, &GlobalNamespace::ScoreController::HandleNoteWasCut, void,
-    GlobalNamespace::ScoreController* self,
-    GlobalNamespace::NoteData* noteData,
-    GlobalNamespace::NoteCutInfo* noteCutInfo) {
-    
-    if (autoplayEnabled && noteCutInfo) {
-        // Force perfect cut scores
-        // MaxCutScore: 115 points
-        noteCutInfo->cutDirectionDeviation = 0;
-        noteCutInfo->cutMultiplier = 1.0f;
-        noteCutInfo->saberSpeed = 20.0f;
-    }
-    
-    ScoreController_HandleNoteWasCut(self, noteData, noteCutInfo);
-}
-
-// Hook for bomb avoidance
+// Hook for bomb avoidance - disable bomb collisions
 MAKE_HOOK_MATCH(BombNoteController_Init, &GlobalNamespace::BombNoteController::Init, void,
     GlobalNamespace::BombNoteController* self,
     GlobalNamespace::NoteData* noteData,
@@ -64,7 +38,6 @@ MAKE_HOOK_MATCH(BombNoteController_Init, &GlobalNamespace::BombNoteController::I
     float duration) {
     
     if (autoplayEnabled) {
-        // Disable bomb collision by moving them far away
         moveEndPos.z = -100.0f;
         moveStartPos.z = -100.0f;
     }
@@ -72,7 +45,7 @@ MAKE_HOOK_MATCH(BombNoteController_Init, &GlobalNamespace::BombNoteController::I
     BombNoteController_Init(self, noteData, worldRotation, moveStartPos, moveEndPos, duration);
 }
 
-// Hook for obstacle avoidance
+// Hook for obstacle avoidance - disable obstacle collisions
 MAKE_HOOK_MATCH(ObstacleController_Init, &GlobalNamespace::ObstacleController::Init, void,
     GlobalNamespace::ObstacleController* self,
     GlobalNamespace::ObstacleData* obstacleData,
@@ -82,7 +55,6 @@ MAKE_HOOK_MATCH(ObstacleController_Init, &GlobalNamespace::ObstacleController::I
     float duration) {
     
     if (autoplayEnabled) {
-        // Disable obstacle collision by moving them far away
         moveEndPos.z = -100.0f;
         moveStartPos.z = -100.0f;
     }
@@ -90,20 +62,17 @@ MAKE_HOOK_MATCH(ObstacleController_Init, &GlobalNamespace::ObstacleController::I
     ObstacleController_Init(self, obstacleData, worldRotation, moveStartPos, moveEndPos, duration);
 }
 
-// Export the mod initialization
 extern "C" void setup(ModInfo& info) {
-    info = modInfo;
-    getLogger().info("Autoplay Mod setup!");
+    info = {"AutoplayMod", "1.0.0", 0};
+    GetLogger().info("Autoplay Mod setup!");
 }
 
 extern "C" void load() {
-    getLogger().info("Loading Autoplay Mod...");
+    GetLogger().info("Loading Autoplay Mod...");
     
-    // Install all hooks
-    INSTALL_HOOK(getLogger(), NoteCutInfo_ctor);
-    INSTALL_HOOK(getLogger(), ScoreController_HandleNoteWasCut);
-    INSTALL_HOOK(getLogger(), BombNoteController_Init);
-    INSTALL_HOOK(getLogger(), ObstacleController_Init);
+    INSTALL_HOOK(GetLogger(), NoteCutInfo_ctor);
+    INSTALL_HOOK(GetLogger(), BombNoteController_Init);
+    INSTALL_HOOK(GetLogger(), ObstacleController_Init);
     
-    getLogger().info("Autoplay Mod loaded!");
+    GetLogger().info("Autoplay Mod loaded successfully!");
 }
