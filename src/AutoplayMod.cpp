@@ -1,73 +1,109 @@
-#include "../include/AutoplayMod.hpp"
-#include "GlobalNamespace/NoteController.hpp"
-#include "GlobalNamespace/ScoreController.hpp"
-#include "GlobalNamespace/ComboController.hpp"
-#include "GlobalNamespace/NoteCutInfo.hpp"
+#include "beatsaber-hook/shared/utils/logging.hpp"
+#include "beatsaber-hook/shared/utils/il2cpp-utils.hpp"
+#include "beatsaber-hook/shared/config/config-utils.hpp"
+#include "beatsaber-hook/shared/utils/hooking.hpp"
 
-bool AutoplayMod::enabled = true;
+static ModInfo modInfo = {.id = "AutoplayMod", .version = "1.0.0"};
 
-void AutoplayMod::Init() {
-    // Hook into NoteController to auto-cut notes
-    INSTALL_HOOK(
-        Modloader, "NoteController_CutNote",
-        GlobalNamespace::NoteController::Cut,
-        &AutoplayMod::OnNoteControllerCut
-    );
-    
-    // Hook into ScoreController to inject perfect scores
-    INSTALL_HOOK(
-        Modloader, "ScoreController_Update",
-        GlobalNamespace::ScoreController::Update,
-        &AutoplayMod::OnScoreControllerUpdate
-    );
-    
-    // Hook into ComboController to prevent breaks
-    INSTALL_HOOK(
-        Modloader, "ComboController_Update",
-        GlobalNamespace::ComboController::Update,
-        &AutoplayMod::OnComboControllerUpdate
-    );
-    
-    getLogger().info("Autoplay Perfect Score mod initialized!");
+// Logger instance
+Logger &getLogger() {
+    static auto logger = new Logger(modInfo);
+    return *logger;
 }
 
-void AutoplayMod::Enable() {
-    enabled = true;
-    getLogger().info("Autoplay enabled - Perfect scores incoming!");
-}
+// Hooking namespace
+using namespace BSML::Parsing;
 
-void AutoplayMod::Disable() {
-    enabled = false;
-    getLogger().info("Autoplay disabled");
-}
+// Global autoplay enabled flag
+bool autoplayEnabled = true;
 
-bool AutoplayMod::IsEnabled() {
-    return enabled;
-}
-
-void AutoplayMod::OnNoteControllerCut(GlobalNamespace::NoteController* noteController, const ByRef<GlobalNamespace::NoteCutInfo> noteCutInfo) {
-    if (!enabled) return;
+// Hook for note cutting
+MAKE_HOOK_MATCH(NoteCutInfo_ctor, &GlobalNamespace::NoteCutInfo::NoteCutInfo, void,
+    GlobalNamespace::NoteCutInfo* self, 
+    GlobalNamespace::NoteData* noteData,
+    int cutDirection,
+    UnityEngine::Vector3 cutPoint,
+    UnityEngine::Quaternion cutAngle,
+    float cutSpeed) {
     
-    // Auto-perfect cut all notes
-    auto& cutInfo = const_cast<GlobalNamespace::NoteCutInfo&>(noteCutInfo.get());
-    cutInfo.saberTypeOk = true;
-    cutInfo.speedOK = true;
-    cutInfo.directionOK = true;
-    cutInfo.saberTypeOk = true;
-    cutInfo.wasCutTooSoon = false;
-    cutInfo.distanceToCutLine = 0.0f;
+    if (autoplayEnabled) {
+        // Perfect cut: correct direction, good speed, center hit
+        cutDirection = noteData->cutDirection;
+        cutPoint = UnityEngine::Vector3::zero;
+        cutAngle = UnityEngine::Quaternion::identity;
+        cutSpeed = 20.0f; // Perfect swing speed
+    }
+    
+    NoteCutInfo_ctor(self, noteData, cutDirection, cutPoint, cutAngle, cutSpeed);
 }
 
-void AutoplayMod::OnScoreControllerUpdate(GlobalNamespace::ScoreController* scoreController) {
-    if (!enabled || !scoreController) return;
+// Hook for score submission
+MAKE_HOOK_MATCH(ScoreController_HandleNoteWasCut, &GlobalNamespace::ScoreController::HandleNoteWasCut, void,
+    GlobalNamespace::ScoreController* self,
+    GlobalNamespace::NoteData* noteData,
+    GlobalNamespace::NoteCutInfo* noteCutInfo) {
     
-    // Inject maximum score (115 per perfect note)
-    scoreController->maxCombo = INT32_MAX;
+    if (autoplayEnabled && noteCutInfo) {
+        // Force perfect cut scores
+        // MaxCutScore: 115 points
+        noteCutInfo->cutDirectionDeviation = 0;
+        noteCutInfo->cutMultiplier = 1.0f;
+        noteCutInfo->saberSpeed = 20.0f;
+    }
+    
+    ScoreController_HandleNoteWasCut(self, noteData, noteCutInfo);
 }
 
-void AutoplayMod::OnComboControllerUpdate(GlobalNamespace::ComboController* comboController) {
-    if (!enabled || !comboController) return;
+// Hook for bomb avoidance
+MAKE_HOOK_MATCH(BombNoteController_Init, &GlobalNamespace::BombNoteController::Init, void,
+    GlobalNamespace::BombNoteController* self,
+    GlobalNamespace::NoteData* noteData,
+    float worldRotation,
+    UnityEngine::Vector3 moveStartPos,
+    UnityEngine::Vector3 moveEndPos,
+    float duration) {
     
-    // Prevent any combo breaks
-    comboController->combo = INT32_MAX;
+    if (autoplayEnabled) {
+        // Disable bomb collision by moving them far away
+        moveEndPos.z = -100.0f;
+        moveStartPos.z = -100.0f;
+    }
+    
+    BombNoteController_Init(self, noteData, worldRotation, moveStartPos, moveEndPos, duration);
+}
+
+// Hook for obstacle avoidance
+MAKE_HOOK_MATCH(ObstacleController_Init, &GlobalNamespace::ObstacleController::Init, void,
+    GlobalNamespace::ObstacleController* self,
+    GlobalNamespace::ObstacleData* obstacleData,
+    float worldRotation,
+    UnityEngine::Vector3 moveStartPos,
+    UnityEngine::Vector3 moveEndPos,
+    float duration) {
+    
+    if (autoplayEnabled) {
+        // Disable obstacle collision by moving them far away
+        moveEndPos.z = -100.0f;
+        moveStartPos.z = -100.0f;
+    }
+    
+    ObstacleController_Init(self, obstacleData, worldRotation, moveStartPos, moveEndPos, duration);
+}
+
+// Export the mod initialization
+extern "C" void setup(ModInfo& info) {
+    info = modInfo;
+    getLogger().info("Autoplay Mod setup!");
+}
+
+extern "C" void load() {
+    getLogger().info("Loading Autoplay Mod...");
+    
+    // Install all hooks
+    INSTALL_HOOK(getLogger(), NoteCutInfo_ctor);
+    INSTALL_HOOK(getLogger(), ScoreController_HandleNoteWasCut);
+    INSTALL_HOOK(getLogger(), BombNoteController_Init);
+    INSTALL_HOOK(getLogger(), ObstacleController_Init);
+    
+    getLogger().info("Autoplay Mod loaded!");
 }
