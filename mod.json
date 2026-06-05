@@ -8,10 +8,10 @@
   "packageId": "com.beatgames.beatsaber",
   "versionRange": "1.40.8",
   "modFiles": [
-    "lib/libAutoplayMod.so"
+    "libAuto.so"
   ],
   "libraryFiles": [
-    "lib/libAutoplayMod.so"
+    "libAuto.so"
   ],
   "fileCopies": []
 }
